@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gap Analysis - Migración TOTVS a SCS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 8px;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .swimlane-container {
+            display: flex;
+            flex-direction: column;
+            margin: 20px;
+        }
+        .swimlane {
+            border: 2px solid #e0e0e0;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .swimlane-header {
+            background: #f8f9fa;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 16px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .swimlane-header:hover {
+            background: #e9ecef;
+        }
+        .swimlane-header .icon {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+        .gap-count {
+            background: #6c757d;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .swimlane-content {
+            padding: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 15px;
+        }
+        .gap-item {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #6c757d;
+        }
+        .gap-item.impacto-alto {
+            border-left-color: #dc3545;
+        }
+        .gap-item.impacto-medio {
+            border-left-color: #ffc107;
+        }
+        .gap-item.impacto-bajo {
+            border-left-color: #28a745;
+        }
+        .gap-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+        }
+        .status-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .cumple-si {
+            background: #d4edda;
+            color: #155724;
+        }
+        .cumple-no {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .observaciones {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+            line-height: 1.4;
+        }
+        .impacto-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .gap-item {
+            position: relative;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Gap Analysis: Migración TOTVS → SCS</h1>
+            <p>Análisis detallado de brechas por módulo funcional</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number">25</div>
+                <div class="stat-label">Total Gaps</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="color: #dc3545;">15</div>
+                <div class="stat-label">Impacto Alto</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="color: #ffc107;">2</div>
+                <div class="stat-label">Impacto Medio</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="color: #28a745;">3</div>
+                <div class="stat-label">Impacto Bajo</div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color cumple-si"></div>
+                <span>Cumple</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color cumple-no"></div>
+                <span>No Cumple</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #dc3545;"></div>
+                <span>Impacto Alto</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffc107;"></div>
+                <span>Impacto Medio</span>
+            </div>
+        </div>
+
+        <div class="swimlane-container">
+            <!-- Swimlane 1: Recepción de Materia Prima -->
+            <div class="swimlane">
+                <div class="swimlane-header">
+                    <div>
+                        <span class="icon">📦</span>
+                        Recepción de Materia Prima
+                    </div>
+                    <span class="gap-count">8 gaps</span>
+                </div>
+                <div class="swimlane-content">
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Registro de cantidad factura, recibida y diferencia</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Funcionalidad crítica para control de recepción
+                        </div>
+                    </div>
+                    
+                    <div class="gap-item">
+                        <div class="gap-title">Registro de rechazo por bolsa y cantidad</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            El sistema TOTVS solo registra el rechazo por cantidad y no determina la bolsa
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-bajo">
+                        <div class="gap-title">Registro de vacas abatidas</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> Bajo
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Registro de hora exacta de recepción</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Necesario para control de tiempos
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Proceso automatizado con escaneo, validación XML y conciliación</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Automatización crítica para eficiencia
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Registro obligatorio vinculado a factura XML</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Requerimiento legal/fiscal
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Registro de múltiples temperaturas por caja</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Control de trazabilidad esencial
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Registro de múltiples fechas de extracción</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Trazabilidad completa requerida
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Control de ubicación del matadero</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Control de origen necesario
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Swimlane 2: Producción y Envasado -->
+            <div class="swimlane">
+                <div class="swimlane-header">
+                    <div>
+                        <span class="icon">🏭</span>
+                        Producción y Envasado
+                    </div>
+                  <span class="gap-count">0 gaps</span>
+                </div>
+                <div class="swimlane-content">
+                    <div class="gap-item impacto-medio">
+                        <div class="gap-title">Impresión de guía para envasado manual</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> MEDIO - En otras sucursales trabajan con un formato físico fuera del sistema con datos que serán posteriormente registrados en SCS
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Asignación de lote desde inicio del llenado y cálculo de fecha de expiración</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Sistema SCS solo registra lote de galón al momento de finalizar envasado
+                        </div>
+                    </div>
+
+                    <div class="gap-item">
+                        <div class="gap-title">Registro de muestras durante envasado</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            En TOTVS no se tiene control de muestras en sistema
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Registro condicionado por autorización financiera</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - El sistema no depende de continuar con proceso de producción de sistemas externos en SCS
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Generación automática de órdenes de fabricación por factura</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - En SCS las órdenes de fabricación se realizan normalmente en un total de una por mes y el envío manual
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Llenado automático de galones según la producción registrada</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> MEDIO - En sistema SCS los galones se registran de manera manual, debido a que las sucursales realizan mezclas de matadero conocido como 99
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Swimlane 3: Muestreo y Calidad -->
+            <div class="swimlane">
+                <div class="swimlane-header">
+                    <div>
+                        <span class="icon">🔬</span>
+                        Muestreo y Calidad
+                    </div>
+                    <span class="gap-count">5 gaps</span>
+                </div>
+                <div class="swimlane-content">
+                    <div class="gap-item">
+                        <div class="gap-title">Registro de hemoglobina HB 700</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> Bajo - Ambos sistemas cumplen con esta funcionalidad, pero en los manuales de procedimientos operativos estandar se ha indicado este analisis no se realizara mas
+                        </div>
+                    </div>
+
+                    <div class="gap-item">
+                        <div class="gap-title">Descuenta stock al tomar muestras</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                             <strong>Impacto:</strong> MEDIO -SCS realizara salida interna de stock al tomar muestras, mientas que en TOTVS no se realiza este descuento debido a que no se tiene registros en sistema.
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-medio">
+                        <div class="gap-title">Clasificación con rangos personalizados (HB y granulaciones)</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> MEDIO - Es necesario ajustar parámetro de rangos de calidad debido a que Brasil tiene un rango diferente a otros países
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-bajo">
+                        <div class="gap-title">Registro de proteína por galón</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>Registro de hemoglobina HB 700
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> BAJO - En Brasil no se realizan ni registra el resultado de proteínas
+                        </div>
+                    </div>
+
+                    <div class="gap-item">
+                        <div class="gap-title">Registro de hemoglobina por matadero</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            No se realiza en sistema en ninguno de los dos
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Swimlane 4: Reportería -->
+            <div class="swimlane">
+                <div class="swimlane-header">
+                    <div>
+                        <span class="icon">📊</span>
+                        Reportería
+                    </div>
+                    <span class="gap-count">4 gaps</span>
+                </div>
+                <div class="swimlane-content">
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Reporte indicador pagos de flete y pago de sangre</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Reporte crítico para gestión financiera
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Reporte diferencia de sangre entre mataderos y lab</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Control de calidad esencial
+                        </div>
+                    </div>
+
+                    <div class="gap-item">
+                        <div class="gap-title">Reporte de trazabilidad</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            Se tiene pero son necesarias algunas mejoras
+                        </div>
+                    </div>
+
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Se requiere opción de armado de packing list</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-no">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Funcionalidad esencial para logística
+                        </div>
+                    </div>
+
+                    <div class="gap-item">
+                        <div class="gap-title">Reporte stock histórico por producto por fecha</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            Sí pero parcialmente - necesita mejoras
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Swimlane 5: Salidas -->
+            <div class="swimlane">
+                <div class="swimlane-header">
+                    <div>
+                        <span class="icon">🚚</span>
+                        Salidas
+                    </div>
+                    <span class="gap-count">3 gaps</span>
+                </div>
+                <div class="swimlane-content">
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Control de cajas y distribución de galones</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-si">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Control de distribución esencial
+                        </div>
+                    </div>
+                    <div class="gap-item impacto-alto">
+                        <div class="gap-title">Cálculo de promedio de galones por pedido</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-si">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Necesario para control de calidad
+                        </div>
+                    </div>
+
+                     <div class="gap-item impacto-alto">
+                        <div class="gap-title">Proceso previo de picking antes de la salida</div>
+                        <div class="status-comparison">
+                            <div class="status-item">
+                                <span>TOTVS:</span>
+                                <span class="status-badge cumple-si">SÍ</span>
+                            </div>
+                            <div class="status-item">
+                                <span>SCS:</span>
+                                <span class="status-badge cumple-si">NO</span>
+                            </div>
+                        </div>
+                        <div class="observaciones">
+                            <strong>Impacto:</strong> ALTO - Necesario en la logística de distribución
+                        </div>
+                    </div>
+                </div>
+                                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Selecciona todos los gaps
+                    const gaps = document.querySelectorAll('.gap-item');
+                    let total = 0, alto = 0, medio = 0, bajo = 0, sinImpacto = 0;
+                
+                    gaps.forEach(gap => {
+                        total++;
+                        if (gap.classList.contains('impacto-alto')) alto++;
+                        else if (gap.classList.contains('impacto-medio')) medio++;
+                        else if (gap.classList.contains('impacto-bajo')) bajo++;
+                        else sinImpacto++;
+                    });
+                
+                    // Actualiza los valores en la sección de estadísticas
+                    const statNumbers = document.querySelectorAll('.stat-number');
+                    if (statNumbers.length >= 4) {
+                        statNumbers[0].textContent = total;
+                        statNumbers[1].textContent = alto;
+                        statNumbers[2].textContent = medio;
+                        statNumbers[3].textContent = sinImpacto + bajo; // Puedes separar si quieres mostrar "Bajo" aparte
+                    }
+                });
+
+                document.addEventListener('DOMContentLoaded', function() {
+    // Actualiza los totales generales (ya lo tienes)
+    const gaps = document.querySelectorAll('.gap-item');
+    let total = 0, alto = 0, medio = 0, bajo = 0, sinImpacto = 0;
+
+    gaps.forEach(gap => {
+        total++;
+        if (gap.classList.contains('impacto-alto')) alto++;
+        else if (gap.classList.contains('impacto-medio')) medio++;
+        else if (gap.classList.contains('impacto-bajo')) bajo++;
+        else sinImpacto++;
+    });
+
+    const statNumbers = document.querySelectorAll('.stat-number');
+    if (statNumbers.length >= 4) {
+        statNumbers[0].textContent = total;
+        statNumbers[1].textContent = alto;
+        statNumbers[2].textContent = medio;
+        statNumbers[3].textContent = sinImpacto + bajo;
+    }
+
+    // Actualiza los gaps por swimlane
+    document.querySelectorAll('.swimlane').forEach(swimlane => {
+        const content = swimlane.querySelector('.swimlane-content');
+        const count = content ? content.querySelectorAll('.gap-item').length : 0;
+        const gapCount = swimlane.querySelector('.gap-count');
+        if (gapCount) {
+            gapCount.textContent = count + (count === 1 ? ' gap' : ' gaps');
+        }
+    });
+});
+                </script>
